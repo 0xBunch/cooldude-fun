@@ -16,6 +16,7 @@ import {
   isSpecComplete,
   mergeSpec,
   validateSpecPatch,
+  type ArtSlot,
   type GameSpecPatch,
   type WizardStep,
 } from './spec';
@@ -27,9 +28,22 @@ const MAX_TURN_CHARS = 200; // cap on stored kid text (bounds tokens + injection
 const KIT_CHIPS = KITS.map((k) => k.label);
 
 type Turn = { role: 'child' | 'buddy'; text: string };
-export type WizardSession = { id: string; spec: GameSpecPatch; history: Turn[] };
+// `imageCount` is the cost faucet — custom sprites made this session (capped at
+// IMAGE_CAP, incremented by the draw/asset routes). `at` is the last-touch time for
+// idle eviction (sessions now hold up to ~MBs of sprite data, so they can't live
+// forever like the old few-KB ones).
+export type WizardSession = { id: string; spec: GameSpecPatch; history: Turn[]; imageCount: number; at: number };
+
+export const IMAGE_CAP = 10; // custom sprites per session
 
 const sessions = new Map<string, WizardSession>();
+const SESSION_TTL_MS = 1000 * 60 * 60 * 2; // 2h idle
+const SESSION_MAX = 500;
+
+function sweepSessions(): void {
+  const now = Date.now();
+  for (const [k, v] of sessions) if (now - v.at > SESSION_TTL_MS) sessions.delete(k);
+}
 
 let anthropic: Anthropic | null = null;
 function client(): Anthropic {
@@ -59,13 +73,21 @@ THE SPEC (fill these in over several steps, via specPatch)
 - goalText: one short "what to do" line for the start screen
 - speed (0.5-2) and lives (1-5) — leave default unless the kid wants harder or easier
 
+CUSTOM LOOKS (artSlot)
+- After the kid picks an emoji for their HERO (and optionally a good/bad thing), you may invite them
+  to give that character a custom look: set artSlot to 'hero' (or 'good'/'bad') and say something like
+  "Want to draw your own hero or use a photo?". The app then shows 🎨 Draw and 📷 Upload buttons.
+- Offer this at most once or twice — mainly for the hero. Always keep a fun emoji set first as a
+  fallback. You never make or handle the picture yourself; you only set artSlot to offer the buttons.
+
 A GOOD FLOW
 1) Greet and ask what kind of game — offer the 3 kit verbs as chips.
 2) Ask who the hero is (let them talk/type; you can also suggest a few emoji chips).
-3) Fill the kit's items (good/bad) with fun emoji chips matched to their idea.
-4) Offer a couple of vibe chips (Space, Candy, Ocean...) and set all four theme colors to match.
-5) Ask for a title (freeform) and set a matching goalText.
-6) When kit + hero + items + theme + title are set, set done = true.
+3) After the hero emoji is set, offer a custom look (artSlot: 'hero').
+4) Fill the kit's items (good/bad) with fun emoji chips matched to their idea.
+5) Offer a couple of vibe chips (Space, Candy, Ocean...) and set all four theme colors to match.
+6) Ask for a title (freeform) and set a matching goalText.
+7) When kit + hero + items + theme + title are set, set done = true.
 
 SAFETY
 - Keep everything kid-appropriate and kind. If the kid types something rude or unsafe, gently steer back to game ideas and never repeat it.
@@ -96,16 +118,17 @@ const PRESENT_STEP_TOOL: Anthropic.Tool = {
           kit: { type: 'string', enum: ['catcher', 'dodger', 'shooter'] },
           title: { type: 'string', maxLength: 40 },
           goalText: { type: 'string', maxLength: 120 },
-          hero: { type: 'object', properties: { glyph: { type: 'string' } } },
+          hero: { type: 'object', additionalProperties: false, properties: { glyph: { type: 'string' } } },
           good: {
             type: 'array',
             maxItems: 4,
             items: {
               type: 'object',
+              additionalProperties: false,
               properties: { glyph: { type: 'string' }, points: { type: 'number', minimum: 1, maximum: 9 } },
             },
           },
-          bad: { type: 'array', maxItems: 4, items: { type: 'object', properties: { glyph: { type: 'string' } } } },
+          bad: { type: 'array', maxItems: 4, items: { type: 'object', additionalProperties: false, properties: { glyph: { type: 'string' } } } },
           theme: {
             type: 'object',
             properties: {
@@ -119,6 +142,12 @@ const PRESENT_STEP_TOOL: Anthropic.Tool = {
           lives: { type: 'number', minimum: 1, maximum: 5 },
         },
       },
+      artSlot: {
+        type: 'string',
+        enum: ['hero', 'good', 'bad'],
+        description:
+          "Set this to offer the kid a custom LOOK for a character they just picked: 'hero' for their main character, 'good'/'bad' for the things. The app then shows 🎨 Draw and 📷 Upload buttons. Omit unless you are inviting them to customize a character's look right now.",
+      },
       done: { type: 'boolean', description: 'true when the spec has a kit, hero, items, theme, and title.' },
     },
     required: ['prompt', 'chips', 'allowFreeform', 'done'],
@@ -126,13 +155,21 @@ const PRESENT_STEP_TOOL: Anthropic.Tool = {
 };
 
 export function startSession(): WizardSession {
-  const session: WizardSession = { id: randomUUID(), spec: {}, history: [] };
+  if (sessions.size > SESSION_MAX) sweepSessions();
+  const session: WizardSession = { id: randomUUID(), spec: {}, history: [], imageCount: 0, at: Date.now() };
   sessions.set(session.id, session);
   return session;
 }
 
 export function getSession(id: string): WizardSession | undefined {
-  return sessions.get(id);
+  const s = sessions.get(id);
+  if (!s) return undefined;
+  if (Date.now() - s.at > SESSION_TTL_MS) {
+    sessions.delete(id);
+    return undefined;
+  }
+  s.at = Date.now(); // touch on access so an active session never times out
+  return s;
 }
 
 function userContext(session: WizardSession, latest: string): string {
@@ -158,11 +195,14 @@ function parseStep(input: unknown): WizardStep {
     ? o.chips.map((c) => cleanText(c, 40)).filter((c): c is string => c !== null).slice(0, 6)
     : [];
   const patch = o.specPatch !== undefined && o.specPatch !== null ? validateSpecPatch(o.specPatch) : null;
+  const artSlot =
+    typeof o.artSlot === 'string' && (['hero', 'good', 'bad'] as string[]).includes(o.artSlot) ? (o.artSlot as ArtSlot) : null;
   return {
     prompt,
     chips,
     allowFreeform: o.allowFreeform === true,
     specPatch: patch && Object.keys(patch).length ? patch : null,
+    artSlot,
     done: o.done === true,
   };
 }
@@ -176,6 +216,7 @@ function retryStep(session: WizardSession): WizardStep {
     chips: cold ? [...KIT_CHIPS] : [],
     allowFreeform: true,
     specPatch: null,
+    artSlot: null,
     done: false,
   };
 }

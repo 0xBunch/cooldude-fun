@@ -98,6 +98,22 @@
   var speed   = clamp(SPEC.speed, 0.5, 2) || 1;
   var maxLives= clamp(Math.floor(SPEC.lives || 3), 1, 5);
 
+  // ---- Custom sprites (a preloaded PNG if the kid made one; emoji is fallback) ----
+  // sprite.img is always a validated data:image/png;base64 URI (server-gated), so
+  // there is no network load and no CSP/taint issue. drawSprite stays sink-free.
+  var IMG = {};
+  function drawSprite(s,x,y,r){
+    var im = (s && s.img) ? IMG[s.img] : null;
+    if (im && im.complete && im.naturalWidth) ctx.drawImage(im, x-r, y-r, r*2, r*2);
+    else drawGlyph(String((s && s.glyph) || "⭐"), x, y, r);
+  }
+  (function preloadSprites(){
+    var all = [hero].concat(goods||[], bads||[]);
+    for (var i=0;i<all.length;i++){ var s=all[i];
+      if (s && s.img && !IMG[s.img]){ var im=new Image(); im.src=s.img; IMG[s.img]=im; }
+    }
+  })();
+
   document.title = TITLE;
   setText("title", TITLE);
   setText("msg", GOAL);
@@ -148,7 +164,7 @@
     items.push({
       x: itemR + Math.random()*(W-itemR*2), y: -itemR,
       vy: (150 + elapsed*7) * speed, bad: bad,
-      glyph: String((def && def.glyph) || (bad?"💣":"⭐")),
+      sprite: def,
       pts: bad ? 0 : clamp((def && def.points) || 1, 1, 9), hit:false
     });
   }
@@ -207,13 +223,13 @@
     if(shake>0) ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
 
     for(var i=0;i<items.length;i++){ var it=items[i];
-      if(it.bad){ ctx.save(); ctx.shadowColor="#ff2b4d"; ctx.shadowBlur=14; drawGlyph(it.glyph,it.x,it.y,itemR); ctx.restore(); }
-      else drawGlyph(it.glyph,it.x,it.y,itemR);
+      if(it.bad){ ctx.save(); ctx.shadowColor="#ff2b4d"; ctx.shadowBlur=14; drawSprite(it.sprite,it.x,it.y,itemR); ctx.restore(); }
+      else drawSprite(it.sprite,it.x,it.y,itemR);
     }
     for(var p=0;p<parts.length;p++){ var q=parts[p]; ctx.globalAlpha=Math.max(0,1-q.age/q.life); ctx.fillStyle=q.color; ctx.beginPath(); ctx.arc(q.x,q.y,4,0,6.283); ctx.fill(); }
     ctx.globalAlpha=1;
 
-    ctx.save(); ctx.shadowColor=ACCENT; ctx.shadowBlur=18; drawGlyph(String(hero.glyph||"🧺"), catcherX, catcherY, itemR*1.25); ctx.restore();
+    ctx.save(); ctx.shadowColor=ACCENT; ctx.shadowBlur=18; drawSprite(hero, catcherX, catcherY, itemR*1.25); ctx.restore();
 
     for(var m=0;m<pops.length;m++){ var pp=pops[m]; ctx.globalAlpha=Math.max(0,1-pp.age/pp.life); ctx.fillStyle=pp.color; ctx.font="800 "+Math.round(itemR*1.05)+"px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(pp.txt, pp.x, pp.y); }
     ctx.globalAlpha=1;

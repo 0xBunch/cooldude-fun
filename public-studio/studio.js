@@ -8,6 +8,8 @@
   var building = false;
   var allowFree = false;
   var isDone = false;
+  var currentArtSlot = null; // 'hero' | 'good' | 'bad' when the step offers a custom look
+  var arting = false; // a draw/upload request is in flight
 
   function $(id) { return document.getElementById(id); }
   function show(name) {
@@ -30,6 +32,7 @@
   function busy(on) {
     $("thinking").classList.toggle("hide", !on);
     $("chips").classList.toggle("hide", on);
+    $("art").classList.toggle("hide", on || !currentArtSlot);
     $("freeform").classList.toggle("hide", on || !allowFree);
     $("buildBtn").classList.toggle("hide", on || !isDone);
   }
@@ -52,11 +55,85 @@
       chips.appendChild(b);
     });
 
+    // Custom-art panel: shown only when the step invites a look for a character.
+    currentArtSlot = step.artSlot || null;
+    $("art").classList.toggle("hide", !currentArtSlot);
+    $("drawBox").classList.add("hide");
+    $("artPreview").classList.add("hide");
+    $("artNote").textContent = "";
+    $("drawInput").value = "";
+    $("drawBtn").disabled = false;
+    $("uploadBtn").disabled = false;
+    $("drawGo").disabled = false;
+
     $("thinking").classList.add("hide");
     chips.classList.remove("hide");
     $("freeform").classList.toggle("hide", !allowFree);
     $("buildBtn").classList.toggle("hide", !isDone);
     $("freeInput").value = "";
+  }
+
+  // ---- custom art (Draw / Upload) ----
+  function artBusy(on, label) {
+    arting = on;
+    $("drawBtn").disabled = on;
+    $("uploadBtn").disabled = on;
+    $("drawGo").disabled = on;
+    $("artNote").textContent = on ? (label || "working…") : "";
+  }
+
+  function onArtResult(r) {
+    artBusy(false);
+    if (r && r.ok && r.img) {
+      var pv = $("artPreview");
+      pv.src = r.img;
+      pv.classList.remove("hide");
+      $("artNote").textContent = "Looks great! Keep going 👇";
+    } else {
+      $("artNote").textContent = (r && r.error) || "that didn't work — try again";
+    }
+  }
+
+  function doDraw() {
+    if (!sessionId || arting || !currentArtSlot) return;
+    var desc = $("drawInput").value.trim();
+    if (!desc) { $("drawInput").focus(); return; }
+    artBusy(true, "drawing…");
+    api("POST", "/api/studio/session/" + encodeURIComponent(sessionId) + "/draw",
+      { slot: currentArtSlot, index: 0, description: desc })
+      .then(onArtResult).catch(function () { onArtResult(null); });
+  }
+
+  // Read a chosen photo/drawing, downscale to <=512px on a canvas (keeps the upload
+  // small; the server re-encodes to a 256² PNG anyway), return a PNG data URL.
+  function fileToSprite(file, cb) {
+    if (!file) { cb(null); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var max = 512, scale = Math.min(1, max / Math.max(img.width, img.height));
+        var cw = Math.max(1, Math.round(img.width * scale)), ch = Math.max(1, Math.round(img.height * scale));
+        var cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+        cv.getContext("2d").drawImage(img, 0, 0, cw, ch);
+        try { cb(cv.toDataURL("image/png")); } catch (e) { cb(null); }
+      };
+      img.onerror = function () { cb(null); };
+      img.src = reader.result;
+    };
+    reader.onerror = function () { cb(null); };
+    reader.readAsDataURL(file);
+  }
+
+  function doUpload(file) {
+    if (!sessionId || arting || !currentArtSlot) return;
+    artBusy(true, "adding your picture…");
+    fileToSprite(file, function (dataUrl) {
+      if (!dataUrl) { onArtResult({ error: "couldn't read that picture" }); return; }
+      api("POST", "/api/studio/session/" + encodeURIComponent(sessionId) + "/asset",
+        { slot: currentArtSlot, index: 0, image: dataUrl })
+        .then(onArtResult).catch(function () { onArtResult(null); });
+    });
   }
 
   function sendInput(input) {
@@ -122,6 +199,16 @@
   $("sendBtn").addEventListener("click", sendFree);
   $("freeInput").addEventListener("keydown", function (e) { if (e.key === "Enter") sendFree(); });
   $("buildBtn").addEventListener("click", build);
+
+  $("drawBtn").addEventListener("click", function () { $("drawBox").classList.toggle("hide"); $("drawInput").focus(); });
+  $("drawGo").addEventListener("click", doDraw);
+  $("drawInput").addEventListener("keydown", function (e) { if (e.key === "Enter") doDraw(); });
+  $("uploadBtn").addEventListener("click", function () { $("fileInput").click(); });
+  $("fileInput").addEventListener("change", function (e) {
+    var f = e.target.files && e.target.files[0];
+    if (f) doUpload(f);
+    e.target.value = "";
+  });
 
   $("againBtn").addEventListener("click", function () {
     sessionId = null;

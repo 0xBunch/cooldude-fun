@@ -46,6 +46,16 @@ export const config = {
   studioCode: process.env.STUDIO_CODE || '',
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
 
+  // Studio art generation (Gemini). Real generation requires BOTH a key AND the
+  // explicit enable flag; otherwise the keyless StubArtProvider is used. The daily
+  // cap is the global spend backstop (per-IP limits are advisory — XFF is spoofable).
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
+  geminiEnabled: process.env.STUDIO_GEMINI_ENABLED === '1',
+  geminiDailyCap: Number(process.env.GEMINI_DAILY_CAP || 50),
+  // Pro model per the gemini-imagegen skill; override to a flash image model
+  // (e.g. gemini-2.5-flash-image) for lower per-image cost — see the cost check.
+  geminiImageModel: process.env.GEMINI_IMAGE_MODEL || 'gemini-3-pro-image-preview',
+
   // Database (empty => in-memory leaderboard)
   databaseUrl: process.env.DATABASE_URL || '',
 

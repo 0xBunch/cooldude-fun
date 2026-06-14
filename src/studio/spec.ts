@@ -9,9 +9,14 @@ import leoProfanity from 'leo-profanity';
 export type KitId = 'catcher' | 'dodger' | 'shooter';
 export const KIT_IDS: KitId[] = ['catcher', 'dodger', 'shooter'];
 
-export type Sprite = { glyph: string };
-export type GoodItem = { glyph: string; points: number };
+// A sprite is an emoji `glyph` (always present — the guaranteed canvas fallback)
+// plus an OPTIONAL custom `img`: a `data:image/png;base64,…` URI for a kid-made
+// look (generated or uploaded). `img` is NEVER model-proposable — it is set only
+// by the server via setSpriteImg() → validateSpriteImg() (the sole gate).
+export type Sprite = { glyph: string; img?: string };
+export type GoodItem = { glyph: string; points: number; img?: string };
 export type Theme = { bg1: string; bg2: string; accent: string; text: string };
+export type ArtSlot = 'hero' | 'good' | 'bad';
 
 export type GameSpec = {
   kit: KitId;
@@ -35,10 +40,17 @@ export type WizardStep = {
   chips: string[]; // tappable options (may be empty)
   allowFreeform: boolean; // show the talk/type box?
   specPatch: GameSpecPatch | null; // validated fields to set, or null
+  artSlot: ArtSlot | null; // when set, the SPA offers 🎨 Draw / 📷 Upload for this character
   done: boolean; // spec complete enough to build?
 };
 
 const HEX = /^#[0-9a-fA-F]{3,8}$/;
+// A sprite image is ONLY ever a PNG data URI whose payload is CANONICAL base64
+// (RFC 4648: full quads, then an optional 2-char `==` or 3-char `=` tail). The
+// strict charset + the round-trip check in validateSpriteImg reject the lenient,
+// whitespace-tolerant forms that `atob`/`Buffer.from` would otherwise accept.
+const PNG_DATA_URI = /^data:image\/png;base64,((?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?)$/;
+const MAX_SPRITE_BYTES = 400 * 1024; // ≤ ~400 KB of decoded PNG per sprite
 // Positive allow-list: emoji pictographs + ZWJ (U+200D) + variation selector
 // (U+FE0F) + skin-tone and flag (regional-indicator) components. Excludes ASCII,
 // control chars, RLO/ZWSP, HTML entities, and digits/#/* — a glyph is only ever
@@ -81,6 +93,53 @@ export function cleanText(v: unknown, max: number): string | null {
 
 function validHex(v: unknown): string | null {
   return typeof v === 'string' && HEX.test(v.trim()) ? v.trim() : null;
+}
+
+// THE single VALIDATOR for a sprite image — the only function that decides whether an
+// `img` is safe (the assembler backstop at assembly re-invokes this very function; no
+// other code validates `img`). By design it verifies OUR OWN re-encoded output (image.ts →
+// data URI built from a sharp PNG buffer), never a client-supplied URI: it must
+// be a PNG data URI with canonical base64, decode to 1..MAX_SPRITE_BYTES bytes,
+// round-trip byte-for-byte (rejecting any non-canonical payload a lenient decoder
+// would have silently reshaped), and carry the real PNG signature.
+export function validateSpriteImg(v: unknown): string | null {
+  if (typeof v !== 'string') return null;
+  const m = PNG_DATA_URI.exec(v);
+  if (!m) return null;
+  const b64 = m[1] ?? '';
+  const buf = Buffer.from(b64, 'base64');
+  if (buf.length === 0 || buf.length > MAX_SPRITE_BYTES) return null;
+  if (buf.toString('base64') !== b64) return null; // reject non-canonical input
+  // PNG magic bytes: 89 50 4E 47 0D 0A 1A 0A.
+  if (buf.length < 8 || buf[0] !== 0x89 || buf[1] !== 0x50 || buf[2] !== 0x4e || buf[3] !== 0x47) return null;
+  return v;
+}
+
+// The ONLY way an `img` is written onto a spec. Owns spec-shape knowledge so route
+// handlers never index into the spec themselves: `hero` is a single sprite (index
+// ignored), `good`/`bad` are arrays (index bounds-checked). Returns false — caller
+// maps to a 4xx — on an out-of-range slot/index or an image that fails the gate.
+// The existing emoji `glyph` is preserved as the fallback.
+export function setSpriteImg(spec: GameSpecPatch, slot: ArtSlot, index: number, rawImg: unknown): boolean {
+  const img = validateSpriteImg(rawImg);
+  if (!img) return false;
+  if (slot === 'hero') {
+    spec.hero = { glyph: spec.hero?.glyph ?? '🧺', img };
+    return true;
+  }
+  if (!Number.isInteger(index) || index < 0) return false;
+  // Branch by slot so the element type is concrete (good = GoodItem, bad = Sprite);
+  // an out-of-range index reads as undefined → false.
+  if (slot === 'good') {
+    const cur = spec.good?.[index];
+    if (!cur) return false;
+    spec.good![index] = { ...cur, img };
+    return true;
+  }
+  const cur = spec.bad?.[index];
+  if (!cur) return false;
+  spec.bad![index] = { ...cur, img };
+  return true;
 }
 
 // Re-validate a model-proposed patch against the allow-list. Anything off-list,
@@ -139,11 +198,23 @@ export function validateSpecPatch(raw: unknown): GameSpecPatch {
   return patch;
 }
 
-// Shallow merge, EXCEPT theme merges channel-wise so a one-color patch doesn't
-// wipe colors set on earlier turns.
+// Shallow merge, EXCEPT (a) theme merges channel-wise so a one-color patch doesn't
+// wipe colors set on earlier turns, and (b) a server-set sprite `img` is STICKY:
+// model patches never carry `img` (validateSpecPatch drops it), so a later patch
+// that re-sends hero/good/bad would otherwise clobber a custom look the kid made.
+// We carry the prior `img` forward by slot (and by array position for good/bad).
 export function mergeSpec(base: GameSpecPatch, patch: GameSpecPatch): GameSpecPatch {
   const merged: GameSpecPatch = { ...base, ...patch };
   if (base.theme || patch.theme) merged.theme = { ...base.theme, ...patch.theme };
+  if (patch.hero && base.hero?.img && !patch.hero.img) {
+    merged.hero = { ...patch.hero, img: base.hero.img };
+  }
+  if (patch.good && base.good) {
+    merged.good = patch.good.map((it, i) => (base.good![i]?.img && !it.img ? { ...it, img: base.good![i].img } : it));
+  }
+  if (patch.bad && base.bad) {
+    merged.bad = patch.bad.map((it, i) => (base.bad![i]?.img && !it.img ? { ...it, img: base.bad![i].img } : it));
+  }
   return merged;
 }
 
