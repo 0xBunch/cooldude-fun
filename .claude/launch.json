@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 8787
+    },
+    {
+      "name": "phase0",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8137", "--directory", "/Users/bunch/_kcb/02_Life/Family/cooldude_fun/studio-phase0"],
+      "port": 8137
     }
   ]
 }

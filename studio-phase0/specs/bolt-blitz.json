@@ -1,0 +1,14 @@
+{
+  "kit": "catcher",
+  "title": "Bolt Blitz",
+  "theme": { "bg1": "#0b2c54", "bg2": "#05111f", "accent": "#ffd24a", "text": "#ffffff" },
+  "hero": { "glyph": "⛑️" },
+  "good": [
+    { "glyph": "🏈", "points": 1 },
+    { "glyph": "⚡", "points": 3 }
+  ],
+  "bad": [ { "glyph": "🪨" } ],
+  "speed": 1.1,
+  "lives": 3,
+  "goalText": "Catch footballs and lightning bolts — dodge the rocks!"
+}

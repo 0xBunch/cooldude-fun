@@ -1,0 +1,14 @@
+{
+  "kit": "catcher",
+  "title": "Pizza Planet",
+  "theme": { "bg1": "#3a1d6e", "bg2": "#120a2e", "accent": "#ff6ad5", "text": "#ffffff" },
+  "hero": { "glyph": "🛸" },
+  "good": [
+    { "glyph": "🍕", "points": 1 },
+    { "glyph": "🌟", "points": 3 }
+  ],
+  "bad": [ { "glyph": "☄️" } ],
+  "speed": 1.05,
+  "lives": 3,
+  "goalText": "Catch pizza and stars in space — dodge the comets!"
+}

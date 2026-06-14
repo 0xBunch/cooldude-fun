@@ -1,0 +1,14 @@
+{
+  "kit": "catcher",
+  "title": "Dodger Dinger",
+  "theme": { "bg1": "#1f54a8", "bg2": "#0a1d40", "accent": "#ffffff", "text": "#ffffff" },
+  "hero": { "glyph": "🧤" },
+  "good": [
+    { "glyph": "⚾", "points": 1 },
+    { "glyph": "🌭", "points": 3 }
+  ],
+  "bad": [ { "glyph": "🥦" } ],
+  "speed": 1,
+  "lives": 3,
+  "goalText": "Catch baseballs and Dodger Dogs — dodge the broccoli!"
+}
