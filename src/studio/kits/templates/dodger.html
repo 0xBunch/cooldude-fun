@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0d0b1f" />
+<title>Cool Dudez Game</title>
+<!--
+  COOL DUDEZ ARCADE — "dodger" kit template.
+  Move a hero left/right to AVOID falling hazards. Survive for score.
+
+  Injection contract: the assembler replaces the SPEC_JSON placeholder in the
+  script below with a base64(UTF-8) blob of the game spec.
+
+  SECURITY: no spec value is ever written as HTML. The spec is decoded here and
+  every value is drawn via <canvas> or set via textContent. This template must
+  never use innerHTML / eval / Function / document.write with spec-derived data.
+-->
+<style>
+  :root { --bg1:#241b4d; --bg2:#0a0820; --accent:#7cf2ff; --text:#ffffff; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin:0; height:100%; overflow:hidden;
+    background: radial-gradient(130% 130% at 50% 0%, var(--bg1), var(--bg2));
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none;
+  }
+  #wrap { position: fixed; inset: 0; touch-action: none; }
+  canvas { display:block; position:absolute; inset:0; }
+  #hud {
+    position: fixed; top: max(12px, env(safe-area-inset-top)); left: 16px; right: 16px;
+    display:flex; justify-content:space-between; align-items:center;
+    font-weight: 800; font-size: clamp(16px, 4.6vw, 24px); letter-spacing:.5px;
+    pointer-events:none; text-shadow: 0 2px 0 rgba(0,0,0,.45);
+  }
+  #flash { position: fixed; inset:0; background:#ff2b4d; opacity:0; pointer-events:none; }
+  #overlay {
+    position: fixed; inset: 0; display:grid; place-items:center; text-align:center;
+    padding: 24px; background: rgba(8,8,22,.80);
+  }
+  #overlay.hide { display:none; }
+  .card { max-width: 480px; }
+  h1 { font-size: clamp(30px, 9vw, 56px); margin:0 0 10px; line-height:1.04; text-shadow: 0 0 22px var(--accent); }
+  #msg { color:#e3e0ff; font-size: clamp(15px, 4.3vw, 20px); margin: 4px 0 24px; }
+  button {
+    font: inherit; font-weight: 800; font-size: clamp(18px, 5.2vw, 23px);
+    padding: 16px 38px; border-radius: 18px; border: 3px solid var(--accent);
+    background: transparent; color: var(--text); cursor: pointer;
+    box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 55%, transparent);
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active { transform: scale(.96); }
+  .hint { margin-top:16px; color:#a39ed0; font-size:13px; }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div id="hud"><span id="score"></span><span id="lives"></span></div>
+<div id="flash"></div>
+<div id="overlay"><div class="card">
+  <h1 id="title"></h1>
+  <p id="msg"></p>
+  <button id="go">Play</button>
+  <div class="hint">Move your finger (or mouse) to dodge!</div>
+</div></div>
+<script>
+(function(){
+  "use strict";
+
+  var SPEC;
+  try {
+    SPEC = JSON.parse(new TextDecoder().decode(
+      Uint8Array.from(atob("{{SPEC_JSON}}"), function(ch){ return ch.charCodeAt(0); })
+    ));
+  } catch (e) { SPEC = {}; }
+  if (!SPEC || typeof SPEC !== "object") SPEC = {};
+
+  function clamp(v,a,b){ v = Number(v); if(!isFinite(v)) v=a; return v<a?a:(v>b?b:v); }
+  function setText(id,s){ document.getElementById(id).textContent = String(s); }
+
+  var T = SPEC.theme || {};
+  var rs = document.documentElement.style;
+  if (T.bg1)    rs.setProperty("--bg1", String(T.bg1).slice(0,32));
+  if (T.bg2)    rs.setProperty("--bg2", String(T.bg2).slice(0,32));
+  if (T.accent) rs.setProperty("--accent", String(T.accent).slice(0,32));
+  if (T.text)   rs.setProperty("--text", String(T.text).slice(0,32));
+  var ACCENT = String(T.accent || "#7cf2ff").slice(0,32);
+
+  var TITLE   = String(SPEC.title || "Dodge Game").slice(0,40);
+  var GOAL    = String(SPEC.goalText || "Dodge the falling stuff. Survive as long as you can!").slice(0,120);
+  var hero    = (SPEC.hero && SPEC.hero.glyph) ? SPEC.hero : { glyph: "🚀" };
+  var bads    = (SPEC.bad && SPEC.bad.length) ? SPEC.bad : [{ glyph:"☄️" }];
+  var speed   = clamp(SPEC.speed, 0.5, 2) || 1;
+  var maxLives= clamp(Math.floor(SPEC.lives || 3), 1, 5);
+
+  document.title = TITLE;
+  setText("title", TITLE);
+  setText("msg", GOAL);
+
+  var cv = document.getElementById("c"), ctx = cv.getContext("2d");
+  var W, H, DPR = Math.min(2, window.devicePixelRatio || 1);
+  var catcherX, targetX, catcherY, heroHalf, itemR;
+  function metrics(){
+    itemR = clamp(Math.min(W,H)*0.058, 18, 44);
+    catcherY = H - clamp(H*0.13, 70, 130);
+    heroHalf = clamp(itemR*0.95, 22, 48);
+    if (typeof catcherX === "number"){ catcherX = clamp(catcherX, heroHalf, W-heroHalf); targetX = clamp(targetX, heroHalf, W-heroHalf); }
+  }
+  function size(){
+    W = innerWidth; H = innerHeight;
+    cv.width = W*DPR; cv.height = H*DPR; cv.style.width = W+"px"; cv.style.height = H+"px";
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    metrics();
+  }
+  addEventListener("resize", size); size();
+
+  var AC = null;
+  function audio(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return AC; }
+  function blip(f0,f1,dur,type){
+    var a = audio(); if(!a) return;
+    var o = a.createOscillator(), g = a.createGain();
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(f0, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(f1, a.currentTime+dur);
+    g.gain.setValueAtTime(0.18, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime+dur);
+    o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime+dur);
+  }
+
+  var items, parts, pops, score, lives, playing, last, elapsed, spawnAt, shake, flash;
+  function reset(){
+    metrics();
+    items=[]; parts=[]; pops=[]; score=0; lives=maxLives; elapsed=0; spawnAt=0.4;
+    catcherX=W/2; targetX=W/2; shake=0; flash=0; last=0; updateHud();
+  }
+  function pick(a){ return a[(Math.random()*a.length)|0]; }
+  function spawn(){
+    var def = pick(bads);
+    items.push({ x: itemR + Math.random()*(W-itemR*2), y: -itemR, vy: (160 + elapsed*9) * speed, glyph: String((def && def.glyph) || "☄️"), hit:false });
+  }
+  function burst(x,y,color,n){ for(var i=0;i<n;i++){ var a=Math.random()*6.283, s=60+Math.random()*180; parts.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-40,age:0,life:.5+Math.random()*.4,color:color}); } }
+  function pop(x,y,txt,color){ pops.push({x:x,y:y,txt:txt,color:color,age:0,life:.8}); }
+  function updateHud(){
+    setText("score", "SCORE " + score);
+    var s=""; for(var i=0;i<maxLives;i++) s += (i<lives ? "❤️" : "🤍");
+    setText("lives", s);
+  }
+  function drawGlyph(g,x,y,r){ ctx.font = (r*2)+"px serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(g,x,y); }
+
+  function frame(t){
+    if(!playing) return;
+    var dt = Math.min(0.045, last ? (t-last)/1000 : 0); last=t; elapsed+=dt;
+
+    var newScore = Math.floor(elapsed*2);
+    if(newScore !== score){ score = newScore; updateHud(); }
+
+    spawnAt -= dt;
+    var every = Math.max(0.30, 0.85 - elapsed*0.018) / speed;
+    if(spawnAt<=0){ spawn(); if(elapsed>14 && Math.random()<0.4) spawn(); spawnAt = every; }
+
+    catcherX += (targetX - catcherX) * Math.min(1, dt*14);
+    catcherX = clamp(catcherX, heroHalf, W-heroHalf);
+
+    for(var i=items.length-1;i>=0;i--){
+      var it=items[i]; it.y += it.vy*dt;
+      if(!it.hit && it.y >= catcherY-itemR*0.8 && it.y <= catcherY+itemR*0.8 && Math.abs(it.x-catcherX) < heroHalf+itemR*0.55){
+        it.hit=true; items.splice(i,1);
+        lives--; flash=1; shake=15; blip(320,100,.24,"square");
+        burst(it.x,catcherY,"#ff2b4d",16); pop(catcherX,catcherY-44,"OUCH","#ff2b4d");
+        updateHud(); if(lives<=0){ return end(); }
+        continue;
+      }
+      if(it.y - itemR > H){ items.splice(i,1); }
+    }
+
+    for(var p=parts.length-1;p>=0;p--){ var q=parts[p]; q.age+=dt; if(q.age>=q.life){ parts.splice(p,1); continue; } q.vy+=380*dt; q.x+=q.vx*dt; q.y+=q.vy*dt; }
+    for(var k=pops.length-1;k>=0;k--){ var pp=pops[k]; pp.age+=dt; pp.y-=42*dt; if(pp.age>=pp.life) pops.splice(k,1); }
+
+    if(shake>0) shake=Math.max(0, shake-dt*40);
+    if(flash>0){ flash=Math.max(0, flash-dt*2.6); document.getElementById("flash").style.opacity = flash*0.5; }
+
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  function render(){
+    ctx.clearRect(0,0,W,H);
+    ctx.save();
+    if(shake>0) ctx.translate((Math.random()-.5)*shake,(Math.random()-.5)*shake);
+
+    for(var i=0;i<items.length;i++){ var it=items[i]; ctx.save(); ctx.shadowColor="#ff6a3d"; ctx.shadowBlur=12; drawGlyph(it.glyph,it.x,it.y,itemR); ctx.restore(); }
+    for(var p=0;p<parts.length;p++){ var q=parts[p]; ctx.globalAlpha=Math.max(0,1-q.age/q.life); ctx.fillStyle=q.color; ctx.beginPath(); ctx.arc(q.x,q.y,4,0,6.283); ctx.fill(); }
+    ctx.globalAlpha=1;
+
+    ctx.save(); ctx.shadowColor=ACCENT; ctx.shadowBlur=18; drawGlyph(String(hero.glyph||"🚀"), catcherX, catcherY, itemR*1.25); ctx.restore();
+
+    for(var m=0;m<pops.length;m++){ var pp=pops[m]; ctx.globalAlpha=Math.max(0,1-pp.age/pp.life); ctx.fillStyle=pp.color; ctx.font="800 "+Math.round(itemR*1.05)+"px system-ui,sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(pp.txt, pp.x, pp.y); }
+    ctx.globalAlpha=1;
+    ctx.restore();
+  }
+
+  function moveTo(clientX){ var r=cv.getBoundingClientRect(); targetX = clamp(clientX - r.left, 0, W); }
+  cv.addEventListener("pointermove", function(e){ if(playing){ e.preventDefault(); moveTo(e.clientX); } }, {passive:false});
+  cv.addEventListener("pointerdown", function(e){ if(playing){ e.preventDefault(); moveTo(e.clientX); } }, {passive:false});
+
+  function start(){ audio(); reset(); playing=true; document.getElementById("overlay").classList.add("hide"); requestAnimationFrame(frame); }
+  function end(){
+    playing=false;
+    document.getElementById("overlay").classList.remove("hide");
+    var who = (window.Arcade && window.Arcade.nickname) ? (window.Arcade.nickname + ", y") : "Y";
+    setText("title", TITLE);
+    setText("msg", who + "ou survived for " + score + "!");
+    document.getElementById("go").textContent = "Play again";
+    setText("score",""); setText("lives","");
+    document.getElementById("flash").style.opacity = 0;
+    if (window.Arcade && window.Arcade.submitScore) window.Arcade.submitScore(score);
+  }
+  document.getElementById("go").addEventListener("click", start);
+
+  if (window.Arcade && window.Arcade.ready) window.Arcade.ready(function(){
+    if (window.Arcade.nickname) setText("msg", "Hi " + window.Arcade.nickname + "! " + GOAL);
+  });
+})();
+</script>
+</body>
+</html>

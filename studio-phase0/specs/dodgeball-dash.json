@@ -1,0 +1,10 @@
+{
+  "kit": "dodger",
+  "title": "Dodgeball Dash",
+  "theme": { "bg1": "#c23a1e", "bg2": "#3a0d08", "accent": "#ffd24a", "text": "#ffffff" },
+  "hero": { "glyph": "🏃" },
+  "bad": [ { "glyph": "🔴" }, { "glyph": "🟠" } ],
+  "speed": 1.1,
+  "lives": 3,
+  "goalText": "Don't get hit! Dodge the dodgeballs!"
+}

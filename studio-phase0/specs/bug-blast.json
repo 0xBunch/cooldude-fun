@@ -1,0 +1,10 @@
+{
+  "kit": "shooter",
+  "title": "Bug Blast",
+  "theme": { "bg1": "#1d4d22", "bg2": "#07200a", "accent": "#d6ff5c", "text": "#ffffff" },
+  "hero": { "glyph": "🐸" },
+  "good": [ { "glyph": "🐛", "points": 1 }, { "glyph": "🦟", "points": 2 }, { "glyph": "🪰", "points": 1 } ],
+  "speed": 1.05,
+  "lives": 3,
+  "goalText": "Zap the bugs out of the sky!"
+}

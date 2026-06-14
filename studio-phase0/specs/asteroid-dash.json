@@ -1,0 +1,10 @@
+{
+  "kit": "dodger",
+  "title": "Asteroid Dash",
+  "theme": { "bg1": "#241b4d", "bg2": "#08061c", "accent": "#7cf2ff", "text": "#ffffff" },
+  "hero": { "glyph": "🚀" },
+  "bad": [ { "glyph": "☄️" }, { "glyph": "🪨" }, { "glyph": "🛸" } ],
+  "speed": 1,
+  "lives": 3,
+  "goalText": "Fly through space — dodge the asteroids!"
+}

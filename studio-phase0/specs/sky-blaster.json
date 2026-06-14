@@ -1,0 +1,10 @@
+{
+  "kit": "shooter",
+  "title": "Sky Blaster",
+  "theme": { "bg1": "#101a4d", "bg2": "#04030d", "accent": "#5cff9d", "text": "#ffffff" },
+  "hero": { "glyph": "🚀" },
+  "good": [ { "glyph": "👾", "points": 1 }, { "glyph": "🛸", "points": 3 } ],
+  "speed": 1,
+  "lives": 3,
+  "goalText": "Blast the aliens before they land!"
+}
