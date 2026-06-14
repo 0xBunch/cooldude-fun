@@ -4,6 +4,7 @@
 
 import { Hono, type Context } from 'hono';
 import { readFileSync } from 'fs';
+import { createHash } from 'crypto';
 import { join } from 'path';
 import { config } from '../config';
 import { getThumb } from '../cache';
@@ -23,6 +24,14 @@ const FILES = {
 };
 type AssetName = keyof typeof FILES;
 
+// Content hash of the shipped assets — appended as ?v= to the asset URLs so every
+// deploy busts the browser/CDN cache. Cloudflare overrides our Cache-Control TTL,
+// so versioned URLs are the reliable cache-bust.
+const ASSET_VER = createHash('sha1')
+  .update(FILES['shell.css'] + FILES['shell.js'] + FILES['index.html'] + FILES['make.js'])
+  .digest('hex')
+  .slice(0, 8);
+
 // Strict CSP for the trusted origin: no inline scripts, games only framed from
 // the games origin. Google Fonts is the only external dependency.
 const CSP =
@@ -40,14 +49,17 @@ function htmlPage(name: AssetName) {
     c.header('Content-Type', 'text/html; charset=utf-8');
     c.header('X-Frame-Options', 'SAMEORIGIN');
     c.header('Content-Security-Policy', CSP);
-    return c.body(FILES[name]);
+    c.header('Cache-Control', 'no-cache'); // always revalidate HTML so fresh ?v= links are seen
+    const html = FILES[name].replace(/(\/(?:shell\.css|shell\.js|make\.js))"/g, `$1?v=${ASSET_VER}"`);
+    return c.body(html);
   };
 }
 
 function staticAsset(name: AssetName, type: string) {
   return (c: Context) => {
     c.header('Content-Type', type);
-    c.header('Cache-Control', 'public, max-age=60');
+    // URLs are content-versioned (?v=), so they can cache hard and forever.
+    c.header('Cache-Control', 'public, max-age=31536000, immutable');
     return c.body(FILES[name]);
   };
 }
