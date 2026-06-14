@@ -20,10 +20,24 @@
 - **Phone app** (`public-studio/studio.html` + `studio.js`) — gate → wizard (chips + 🎙️ Web Speech) → build → sandboxed preview.
 - **Routes** (`src/routes/studio.ts`, `studio-shell.ts`) — `/studio` + `/api/studio/*` on the public host; `/preview/:token` sandboxed on the games host. Fail-closed: off until `STUDIO_CODE` set.
 - In-memory sessions; ~2¢/game.
+- **🎯 Characters & Elements (image-gen + photo upload)** — a kid gives any character a custom look:
+  **📷 Upload** (`POST …/asset`) re-encodes untrusted bytes via `sharp` (`src/studio/image.ts`: magic-byte
+  allow-list → 256² PNG, EXIF/metadata stripped) and **🎨 Draw** (`POST …/draw`) generates one via a
+  Gemini art-provider (`src/studio/art-provider.ts`; keyless `StubArtProvider` by default). Both converge on
+  `reencodeToSprite` → `validateSpriteImg` → `setSpriteImg` (the sole `img` gate in `spec.ts`); assembler
+  PNG backstop + 1.5 MB cap; templates render `img` via canvas `drawSprite` (emoji fallback). Locked
+  `/preview` CSP, dedicated rate-limit buckets + global Gemini daily cap + per-session image cap +
+  session eviction. Security-reviewed (no Critical/High). Verified end-to-end; `scripts/test-art-pipeline.ts` (28 checks).
 
 ---
 
-## 🎯 PRIORITY — Characters & Elements (image-gen + asset upload)
+## 🎯 PRIORITY — Characters & Elements ✅ SHIPPED (deferred bits below)
+
+> Built and verified this sprint (see the Shipped entry above). **Still deferred:** chroma-key transparency
+> (solid-bg v1), a vision-safety moderation pass, and the parent-approval gate — required before any
+> generated/uploaded sprite leaves the kid's in-memory session (i.e. before Publish-to-arcade). To go live
+> on real generation, set `GEMINI_API_KEY` + `STUDIO_GEMINI_ENABLED=1` (+ optional `GEMINI_DAILY_CAP`,
+> `GEMINI_IMAGE_MODEL`) on Railway; confirm the `sharp` native build in the deploy logs. Original spec:
 
 **James says this is THE killer function.** Today every character (hero, the good things, the
 bad things) is an emoji. This lets a kid give any character a **custom look** two ways:

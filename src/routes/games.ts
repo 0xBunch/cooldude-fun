@@ -39,7 +39,17 @@ games.get('/preview/:token', (c) => {
   if (html === null) return c.text('Preview expired — build it again', 404);
   c.header('Content-Type', 'text/html; charset=utf-8');
   c.header('X-Content-Type-Options', 'nosniff');
-  c.header('Content-Security-Policy', `frame-ancestors ${config.publicBaseUrl}`);
+  // Locked-down CSP for the preview: it's our own pre-tested template, so its one
+  // inline <script>/<style> are ours, and sprites are `data:` PNGs — nothing else.
+  // `connect-src 'none'` kills any network egress, so even a future template
+  // regression could not exfiltrate a spec value. (Scoped to previews only — the
+  // public /g/:slug arcade games may legitimately load external assets.)
+  c.header(
+    'Content-Security-Policy',
+    "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; " +
+      "img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; " +
+      `frame-ancestors ${config.publicBaseUrl}`
+  );
   c.header('Cache-Control', 'no-store');
   return c.body(html);
 });
