@@ -15,8 +15,14 @@ import { finalizeSpec } from '../src/studio/spec';
 import { assemble } from '../src/studio/assembler';
 
 async function main(): Promise<void> {
+  // Load ANTHROPIC_API_KEY (and friends) from a local .env, same as the server.
+  try {
+    (process as { loadEnvFile?: (path?: string) => void }).loadEnvFile?.();
+  } catch {
+    /* no .env present — fine */
+  }
   if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('Set ANTHROPIC_API_KEY first:  ANTHROPIC_API_KEY=sk-ant-... npx tsx scripts/wizard-repl.ts');
+    console.error('Need an Anthropic key. Put  ANTHROPIC_API_KEY=sk-ant-...  in a .env file at the repo root, then run:  npx tsx scripts/wizard-repl.ts');
     process.exit(1);
   }
   const rl = createInterface({ input: process.stdin, output: process.stdout });
