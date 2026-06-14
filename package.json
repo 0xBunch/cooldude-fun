@@ -13,6 +13,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
     "@hono/node-server": "^2.0.4",
     "googleapis": "^173.0.0",
     "hono": "^4.12.25",
