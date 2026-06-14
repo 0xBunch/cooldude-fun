@@ -41,6 +41,11 @@ export const config = {
   cookieSecret: process.env.COOKIE_SECRET || 'dev-insecure-cookie-secret-change-me',
   adminToken: process.env.ADMIN_TOKEN || '',
 
+  // Studio (kids' game-maker, served at /studio). Both empty => Studio is OFF and
+  // the arcade is unaffected — so adding these can never break a running arcade.
+  studioCode: process.env.STUDIO_CODE || '',
+  anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
+
   // Database (empty => in-memory leaderboard)
   databaseUrl: process.env.DATABASE_URL || '',
 

@@ -7,6 +7,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { config } from '../config';
 import { getGameHtml } from '../cache';
+import { getPreview } from '../studio/preview-store';
 
 export const games = new Hono();
 
@@ -25,6 +26,19 @@ games.get('/g/:slug', async (c) => {
   c.header('Content-Type', 'text/html; charset=utf-8');
   c.header('X-Content-Type-Options', 'nosniff');
   // Only our shell may frame a game; the game itself can't be framed elsewhere.
+  c.header('Content-Security-Policy', `frame-ancestors ${config.publicBaseUrl}`);
+  c.header('Cache-Control', 'no-store');
+  return c.body(html);
+});
+
+// Studio preview: a just-built game, played in a sandboxed iframe on this
+// untrusted origin (capability token from the build step). No Arcade SDK — a
+// preview doesn't submit scores.
+games.get('/preview/:token', (c) => {
+  const html = getPreview(c.req.param('token'));
+  if (html === null) return c.text('Preview expired — build it again', 404);
+  c.header('Content-Type', 'text/html; charset=utf-8');
+  c.header('X-Content-Type-Options', 'nosniff');
   c.header('Content-Security-Policy', `frame-ancestors ${config.publicBaseUrl}`);
   c.header('Cache-Control', 'no-store');
   return c.body(html);
