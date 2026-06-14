@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0b1f" />
+  <title>Make a game · COOL DUDE'S ARCADE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/shell.css" />
+</head>
+<body>
+  <div id="scanlines" aria-hidden="true"></div>
+  <main>
+    <a class="linkbtn back-link" href="/">‹ back to the arcade</a>
+    <h1 class="logo logo-sm">MAKE A GAME</h1>
+    <div class="prose">
+      <p>Anyone can add a game to the arcade — even with no coding. Here's how.</p>
+
+      <h2>1. Ask an AI to build it</h2>
+      <p>Open Claude (or any chat that makes web pages) and paste this <strong>recipe</strong>. Change the idea to whatever game you want!</p>
+      <pre class="recipe" id="recipe">Make me a single-file HTML game for Cool Dude's Arcade.
+
+Rules:
+1. Put EVERYTHING in ONE .html file — all the HTML, CSS, and JavaScript inline. No separate files, no internet links, no build step.
+2. It must work when I just open the file in a browser.
+3. When the game ends and there's a final score, call exactly this line:
+       window.Arcade?.submitScore(finalScore);
+   (finalScore must be a whole number. The "?." keeps it safe outside the arcade.)
+4. Optional: you can greet the player using their name from  window.Arcade?.nickname
+5. Make it colorful, fun, and kid-friendly for a 9-year-old.
+
+My game idea: A spaceship that dodges asteroids and scores points for surviving.
+
+Give me the full .html file so I can save it.</pre>
+      <button class="btn btn-cyan copy-btn" id="copy-btn" type="button">Copy the recipe</button>
+
+      <h2>2. Save the file</h2>
+      <p>Save what the AI gives you as a file ending in <code>.html</code>. The file's name becomes the game's name — so <code>Asteroid Dash.html</code> shows up as “Asteroid Dash”.</p>
+
+      <h2>3. Drop it in the Drive folder</h2>
+      <p>Put the <code>.html</code> file into the arcade's shared Google Drive folder. That's it — it shows up in the arcade within about a minute. Want a custom picture on the tile? Drop an image with the same name next to it (e.g. <code>Asteroid Dash.png</code>).</p>
+
+      <h2>That's it!</h2>
+      <p>Your friends can play it and chase the top score. <a class="linkbtn" href="/">Back to the arcade ▸</a></p>
+    </div>
+  </main>
+  <script src="/make.js"></script>
+</body>
+</html>

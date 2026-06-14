@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0d0b1f" />
+  <title>COOL DUDE'S ARCADE</title>
+  <meta name="description" content="A home for James's mini games. Pick a game, beat your friends." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/shell.css" />
+</head>
+<body>
+  <div id="scanlines" aria-hidden="true"></div>
+
+  <main>
+    <!-- ── GATE ───────────────────────────────────────────────────────── -->
+    <section id="gate" class="view" aria-labelledby="gate-title">
+      <div class="stack center">
+        <p class="kicker">★ welcome to ★</p>
+        <h1 class="logo" id="gate-title">COOL DUDE'S<br />ARCADE</h1>
+        <p class="sub">Enter the secret arcade code to play.</p>
+        <form id="gate-form" class="gate-form" autocomplete="off">
+          <input
+            id="gate-input"
+            class="field"
+            type="text"
+            inputmode="text"
+            placeholder="arcade code"
+            aria-label="Arcade code"
+            maxlength="40"
+            required
+          />
+          <button class="btn btn-cyan" type="submit">Enter</button>
+          <p id="gate-error" class="error" role="alert" hidden></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- ── HOME / GALLERY ─────────────────────────────────────────────── -->
+    <section id="home" class="view" hidden aria-labelledby="home-title">
+      <header class="home-head stack center">
+        <h1 class="logo logo-sm" id="home-title">COOL DUDE'S ARCADE</h1>
+        <p class="marquee">★ insert coin ★ pick a game ★ beat your friends ★</p>
+        <p class="whoami">
+          Hi, <span id="whoami-name" class="nick">DUDE</span> —
+          <button id="change-name" class="linkbtn" type="button">change name</button>
+        </p>
+      </header>
+
+      <div id="game-grid" class="grid" role="list"></div>
+
+      <div id="empty" class="empty" hidden>
+        <p class="empty-emoji" aria-hidden="true">🕹️</p>
+        <p class="empty-title">No games yet!</p>
+        <p class="sub">Drop a game's <code>.html</code> file into the arcade's Google Drive folder and it shows up here.</p>
+        <a class="btn btn-magenta" href="/make">How to make a game ▸</a>
+      </div>
+
+      <footer class="home-foot">
+        <a class="linkbtn" href="/make">Make your own game ▸</a>
+      </footer>
+    </section>
+
+    <!-- ── PLAY ───────────────────────────────────────────────────────── -->
+    <section id="play" class="view view-play" hidden aria-labelledby="play-title">
+      <header class="play-head">
+        <button id="back-btn" class="iconbtn" type="button" aria-label="Back to games">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <h2 id="play-title" class="play-title">Game</h2>
+        <span class="nick-chip"><span id="play-nick" class="nick">DUDE</span></span>
+        <button id="scores-btn" class="iconbtn" type="button" aria-label="Show top scores">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 4h12v3a6 6 0 0 1-12 0V4zM4 5h2M18 5h2M9 20h6M12 14v6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </header>
+      <div id="frame-wrap" class="frame-wrap"></div>
+      <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+    </section>
+  </main>
+
+  <!-- ── NICKNAME MODAL ───────────────────────────────────────────────── -->
+  <div id="nickname-modal" class="overlay" hidden>
+    <div class="sheet stack" role="dialog" aria-modal="true" aria-labelledby="nick-title">
+      <h2 id="nick-title" class="sheet-title">Pick your arcade name</h2>
+      <p class="sub">This is how your scores show up. Keep it cool and clean.</p>
+      <form id="nickname-form" autocomplete="off">
+        <input id="nickname-input" class="field" type="text" placeholder="e.g. JBOLT" aria-label="Your arcade name" maxlength="16" required />
+        <p id="nickname-error" class="error" role="alert" hidden></p>
+        <button class="btn btn-cyan" type="submit">That's me!</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── LEADERBOARD MODAL ────────────────────────────────────────────── -->
+  <div id="leaderboard-modal" class="overlay" hidden>
+    <div class="sheet stack" role="dialog" aria-modal="true" aria-labelledby="lb-title">
+      <div class="sheet-head">
+        <h2 id="lb-title" class="sheet-title">Top scores</h2>
+        <button id="lb-close" class="iconbtn" type="button" aria-label="Close scores">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <ol id="lb-list" class="lb-list"></ol>
+      <p id="lb-empty" class="sub" hidden>No scores yet — be the first!</p>
+    </div>
+  </div>
+
+  <script src="/shell.js"></script>
+</body>
+</html>

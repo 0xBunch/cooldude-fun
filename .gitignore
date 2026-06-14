@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+
+# Local secrets / never commit
+service-account*.json
+*.key.json
+
+# Local-only test games folder (used when no Drive creds are set)
+games-local/
