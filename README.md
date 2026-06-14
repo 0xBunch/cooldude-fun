@@ -74,8 +74,8 @@ Optional: drop an image with the same name (`My Game.png`) for a custom tile.
 ### 2. Railway
 
 - One project with the **Postgres** plugin (injects `DATABASE_URL`).
-- One **service** from this repo (Nixpacks autodetects Node): build
-  `npm ci && npm run build`, start `node dist/server.js`.
+- One **service** from this repo (Nixpacks autodetects Node + installs deps):
+  build `npm run build`, start `node dist/server.js`.
 - Add **two custom domains to the same service**: `cooldude.fun` and
   `games.cooldude.fun` (the service splits traffic by `Host`).
 - **Keep `numReplicas` at 1.** The games cache and rate limiter hold in-memory
