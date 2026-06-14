@@ -1,4 +1,4 @@
-/* COOL DUDE'S ARCADE — shell controller (the trusted parent).
+/* COOL DUDEZ ARCADE — shell controller (the trusted parent).
  * Owns the nickname + device id, runs the gate, renders the gallery, hosts the
  * sandboxed game iframe, and is the ONLY thing that submits scores. */
 (function () {
@@ -39,6 +39,70 @@
     return id;
   }
 
+  // ── sound (synthesized via Web Audio — no audio files) ─────────────────────
+  var sound = { ctx: null, muted: localStorage.getItem('cd_sound') === '0' };
+
+  function audioCtx() {
+    if (!sound.ctx) {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) sound.ctx = new AC();
+    }
+    if (sound.ctx && sound.ctx.state === 'suspended') sound.ctx.resume();
+    return sound.ctx;
+  }
+  function tone(freq, start, dur, type, gain) {
+    var ctx = sound.ctx;
+    if (!ctx) return;
+    var t0 = ctx.currentTime + start;
+    var o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(gain || 0.16, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  function play(seq) {
+    if (sound.muted || !audioCtx()) return;
+    seq();
+  }
+  var sfx = {
+    blip:    function () { play(function () { tone(660, 0, 0.07, 'square', 0.10); }); },
+    select:  function () { play(function () { tone(520, 0, 0.06, 'square', 0.13); tone(780, 0.06, 0.09, 'square', 0.13); }); },
+    coin:    function () { play(function () { tone(988, 0, 0.07, 'square', 0.15); tone(1319, 0.07, 0.17, 'square', 0.15); }); },
+    powerup: function () { play(function () { [523, 659, 784, 1047].forEach(function (f, i) { tone(f, i * 0.07, 0.13, 'triangle', 0.15); }); }); },
+    buzz:    function () { play(function () { tone(160, 0, 0.18, 'sawtooth', 0.16); tone(120, 0.16, 0.22, 'sawtooth', 0.14); }); },
+  };
+  function unlockAudioOnce() {
+    audioCtx();
+    window.removeEventListener('pointerdown', unlockAudioOnce);
+    window.removeEventListener('keydown', unlockAudioOnce);
+  }
+  function applyMuteUI(btn) {
+    if (!btn) return;
+    btn.classList.toggle('is-muted', sound.muted);
+    btn.setAttribute('aria-pressed', sound.muted ? 'false' : 'true');
+    btn.setAttribute('aria-label', sound.muted ? 'Unmute sound' : 'Mute sound');
+  }
+  function initSound() {
+    window.addEventListener('pointerdown', unlockAudioOnce);
+    window.addEventListener('keydown', unlockAudioOnce);
+    var btn = $('sound-toggle');
+    applyMuteUI(btn);
+    if (btn) btn.addEventListener('click', function () {
+      sound.muted = !sound.muted;
+      localStorage.setItem('cd_sound', sound.muted ? '0' : '1');
+      applyMuteUI(btn);
+      if (!sound.muted) { audioCtx(); sfx.blip(); }
+    });
+    // Light tactile blip on secondary nav controls (primary actions have their own SFX).
+    document.addEventListener('pointerdown', function (e) {
+      var t = e.target;
+      if (t && t.closest && t.closest('.iconbtn, .linkbtn')) sfx.blip();
+    });
+  }
+
   function getJSON(path) {
     return fetch(path, { headers: { 'x-device-id': state.deviceId } }).then(function (r) { return r.json(); });
   }
@@ -63,9 +127,10 @@
       e.preventDefault();
       var err = $('gate-error');
       err.hidden = true;
+      sfx.coin();
       postJSON('/api/gate', { code: $('gate-input').value }).then(function (r) {
-        if (r.ok) { enterArcade(); }
-        else { err.textContent = 'That code is not right. Ask the Cool Dude!'; err.hidden = false; }
+        if (r.ok) { sfx.powerup(); enterArcade(); }
+        else { sfx.buzz(); err.textContent = 'That code is not right. Ask the Cool Dude!'; err.hidden = false; }
       }).catch(function () {
         err.textContent = 'Something went wrong. Try again.'; err.hidden = false;
       });
@@ -101,6 +166,7 @@
       }
       state.nickname = val;
       localStorage.setItem('cd_nickname', val);
+      sfx.select();
       $('nickname-modal').hidden = true;
       renderWhoami();
       var cb = pendingAfterNick; pendingAfterNick = null;
@@ -166,6 +232,7 @@
 
   // ── play ─────────────────────────────────────────────────────────────────
   function openGame(game) {
+    sfx.select();
     ensureNickname(function () {
       state.currentGame = game;
       $('play-title').textContent = game.title;
@@ -245,6 +312,7 @@
     for (var i = 0; i < top.length; i++) {
       if (top[i].nickname === state.nickname && Number(top[i].score) === score) { rank = i + 1; break; }
     }
+    if (isBest) sfx.powerup(); else sfx.coin();
     var head = isBest ? 'NEW HIGH SCORE!' : 'SCORE SAVED!';
     var sub = fmt(score) + (rank ? '  ·  #' + rank + ' on the board' : '');
     showToast(head, sub);
@@ -299,6 +367,7 @@
 
   function start() {
     state.deviceId = deviceId();
+    initSound();
     initGate();
     initNickname();
     initPlay();

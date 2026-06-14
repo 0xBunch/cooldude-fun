@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0d0b1f" />
-  <title>COOL DUDE'S ARCADE</title>
+  <title>COOL DUDEZ ARCADE</title>
   <meta name="description" content="A home for James's mini games. Pick a game, beat your friends." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -12,14 +12,24 @@
   <link rel="stylesheet" href="/shell.css" />
 </head>
 <body>
+  <div id="arcade-bg" aria-hidden="true">
+    <span class="bg-orbs"></span>
+    <span class="bg-grid"></span>
+    <span class="bg-vignette"></span>
+  </div>
   <div id="scanlines" aria-hidden="true"></div>
+
+  <button id="sound-toggle" class="sound-toggle" type="button" aria-label="Mute sound" aria-pressed="true">
+    <svg class="ico-on" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <svg class="ico-off" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z" fill="currentColor"/><path d="M22 9l-6 6M16 9l6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
 
   <main>
     <!-- ── GATE ───────────────────────────────────────────────────────── -->
     <section id="gate" class="view" aria-labelledby="gate-title">
       <div class="stack center">
         <p class="kicker">★ welcome to ★</p>
-        <h1 class="logo" id="gate-title">COOL DUDE'S<br />ARCADE</h1>
+        <h1 class="logo" id="gate-title">COOL DUDEZ<br />ARCADE</h1>
         <p class="sub">Enter the secret arcade code to play.</p>
         <form id="gate-form" class="gate-form" autocomplete="off">
           <input
@@ -30,6 +40,13 @@
             placeholder="arcade code"
             aria-label="Arcade code"
             maxlength="40"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
             required
           />
           <button class="btn btn-cyan" type="submit">Enter</button>
@@ -41,7 +58,7 @@
     <!-- ── HOME / GALLERY ─────────────────────────────────────────────── -->
     <section id="home" class="view" hidden aria-labelledby="home-title">
       <header class="home-head stack center">
-        <h1 class="logo logo-sm" id="home-title">COOL DUDE'S ARCADE</h1>
+        <h1 class="logo logo-sm" id="home-title">COOL DUDEZ ARCADE</h1>
         <p class="marquee">★ insert coin ★ pick a game ★ beat your friends ★</p>
         <p class="whoami">
           Hi, <span id="whoami-name" class="nick">DUDE</span> —
@@ -86,7 +103,7 @@
       <h2 id="nick-title" class="sheet-title">Pick your arcade name</h2>
       <p class="sub">This is how your scores show up. Keep it cool and clean.</p>
       <form id="nickname-form" autocomplete="off">
-        <input id="nickname-input" class="field" type="text" placeholder="e.g. JBOLT" aria-label="Your arcade name" maxlength="16" required />
+        <input id="nickname-input" class="field" type="text" placeholder="e.g. JBOLT" aria-label="Your arcade name" maxlength="16" autocomplete="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other" required />
         <p id="nickname-error" class="error" role="alert" hidden></p>
         <button class="btn btn-cyan" type="submit">That's me!</button>
       </form>

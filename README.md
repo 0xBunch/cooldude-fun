@@ -1,4 +1,4 @@
-# COOL DUDE'S ARCADE 🕹️
+# COOL DUDEZ ARCADE 🕹️
 
 A tiny home for James's mini web games, at **cooldude.fun**. Drop a game's
 `.html` file into a Google Drive folder and it shows up in the arcade within a
@@ -50,7 +50,7 @@ npm start            # run the compiled server
 Paste this into Claude (or any AI that makes web pages), tweak the idea, save the
 result as `My Game.html`, and drop it in the Drive folder. Also lives at `/make`.
 
-> Make me a single-file HTML game for Cool Dude's Arcade.
+> Make me a single-file HTML game for Cool Dudez Arcade.
 > 1. Put EVERYTHING in ONE `.html` file — all HTML, CSS, and JavaScript inline. No separate files, no internet links, no build step.
 > 2. It must work when I just open the file in a browser.
 > 3. When the game ends with a final score, call exactly: `window.Arcade?.submitScore(finalScore);` (a whole number; the `?.` keeps it safe outside the arcade).

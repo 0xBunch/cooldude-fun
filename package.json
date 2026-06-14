@@ -2,7 +2,7 @@
   "name": "cooldude-arcade",
   "version": "1.0.0",
   "private": true,
-  "description": "COOL DUDE'S ARCADE — a home for James's mini web games (cooldude.fun)",
+  "description": "COOL DUDEZ ARCADE — a home for James's mini web games (cooldude.fun)",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",

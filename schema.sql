@@ -1,4 +1,4 @@
--- COOL DUDE'S ARCADE — leaderboard schema.
+-- COOL DUDEZ ARCADE — leaderboard schema.
 -- Applied at boot with CREATE TABLE IF NOT EXISTS (idempotent).
 -- Drive is the source of truth for the game list, so there is no games table.
 -- Nicknames are not accounts, so there is no users table.

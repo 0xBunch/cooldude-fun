@@ -4,13 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0d0b1f" />
-  <title>Make a game · COOL DUDE'S ARCADE</title>
+  <title>Make a game · COOL DUDEZ ARCADE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/shell.css" />
 </head>
-<body>
+<body class="page-make">
+  <div id="arcade-bg" aria-hidden="true">
+    <span class="bg-orbs"></span>
+    <span class="bg-grid"></span>
+    <span class="bg-vignette"></span>
+  </div>
   <div id="scanlines" aria-hidden="true"></div>
   <main>
     <a class="linkbtn back-link" href="/">‹ back to the arcade</a>
@@ -20,7 +25,7 @@
 
       <h2>1. Ask an AI to build it</h2>
       <p>Open Claude (or any chat that makes web pages) and paste this <strong>recipe</strong>. Change the idea to whatever game you want!</p>
-      <pre class="recipe" id="recipe">Make me a single-file HTML game for Cool Dude's Arcade.
+      <pre class="recipe" id="recipe">Make me a single-file HTML game for Cool Dudez Arcade.
 
 Rules:
 1. Put EVERYTHING in ONE .html file — all the HTML, CSS, and JavaScript inline. No separate files, no internet links, no build step.

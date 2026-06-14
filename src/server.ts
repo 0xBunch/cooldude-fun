@@ -1,4 +1,4 @@
-// COOL DUDE'S ARCADE — single service, two hostnames, one database.
+// COOL DUDEZ ARCADE — single service, two hostnames, one database.
 //   public host (cooldude.fun):        arcade shell + /api + thumbnails
 //   games host  (games.cooldude.fun):  untrusted game HTML + the SDK
 // In local dev both are the same origin and the iframe sandbox is the boundary.
@@ -45,7 +45,7 @@ async function main(): Promise<void> {
 
   serve({ fetch: app.fetch, port: config.port }, (info) => {
     console.log(
-      `\n  COOL DUDE'S ARCADE  ▸  http://localhost:${info.port}\n` +
+      `\n  COOL DUDEZ ARCADE  ▸  http://localhost:${info.port}\n` +
         `  db: ${usingMemory() ? 'in-memory' : 'postgres'}   ` +
         `games: ${getProvider().mode}   ` +
         `hosts: ${config.sameHost ? 'single-origin (dev)' : `${config.publicHost} + ${config.gamesHost}`}\n`

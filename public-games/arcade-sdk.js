@@ -1,5 +1,5 @@
 /*
- * COOL DUDE'S ARCADE — Arcade SDK
+ * COOL DUDEZ ARCADE — Arcade SDK
  * Injected into every game. Runs inside a sandboxed iframe (opaque origin),
  * so it has NO access to the arcade's cookies or storage. It talks to the
  * arcade shell only through postMessage.
