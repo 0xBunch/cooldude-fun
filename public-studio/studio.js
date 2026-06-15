@@ -60,6 +60,7 @@
     $("art").classList.toggle("hide", !currentArtSlot);
     $("drawBox").classList.add("hide");
     $("artPreview").classList.add("hide");
+    $("artNext").classList.add("hide");
     $("artNote").textContent = "";
     $("drawInput").value = "";
     $("drawBtn").disabled = false;
@@ -88,7 +89,9 @@
       var pv = $("artPreview");
       pv.src = r.img;
       pv.classList.remove("hide");
-      $("artNote").textContent = "Looks great! Keep going 👇";
+      $("artNote").textContent = "Looks great!";
+      // Always give a way forward — the wizard step may not have offered any chips.
+      $("artNext").classList.remove("hide");
     } else {
       $("artNote").textContent = (r && r.error) || "that didn't work — try again";
     }
@@ -203,6 +206,7 @@
   $("drawBtn").addEventListener("click", function () { $("drawBox").classList.toggle("hide"); $("drawInput").focus(); });
   $("drawGo").addEventListener("click", doDraw);
   $("drawInput").addEventListener("keydown", function (e) { if (e.key === "Enter") doDraw(); });
+  $("artNext").addEventListener("click", function () { sendInput("That's the look I want — let's keep going!"); });
   $("uploadBtn").addEventListener("click", function () { $("fileInput").click(); });
   $("fileInput").addEventListener("change", function (e) {
     var f = e.target.files && e.target.files[0];

@@ -14,6 +14,7 @@
 import sharp from 'sharp';
 import { assemble } from '../src/studio/assembler';
 import { reencodeToSprite, ImageRejected } from '../src/studio/image';
+import { specForPrompt } from '../src/studio/wizard';
 import {
   finalizeSpec,
   mergeSpec,
@@ -113,6 +114,18 @@ check('rejects non-string', validateSpriteImg(12345 as unknown) === null);
   let threwBackstop = false;
   try { assemble(tampered); } catch (e) { threwBackstop = (e as Error).message.includes('PNG allow-list'); }
   check('assemble backstop rejects a tampered non-PNG img', threwBackstop);
+}
+
+// ---- specForPrompt redacts img bytes (wizard-context cost guard) ----------------
+{
+  const s: GameSpecPatch = { kit: 'catcher', hero: { glyph: '🐱' }, good: [{ glyph: '⭐', points: 1 }], bad: [{ glyph: '💣' }] };
+  setSpriteImg(s, 'hero', 0, uriMax);
+  setSpriteImg(s, 'good', 0, uriMax);
+  const out = specForPrompt(s);
+  check('specForPrompt strips the base64 image bytes', !out.includes('data:image/png;base64,'));
+  check('specForPrompt keeps a [custom image] marker', out.includes('[custom image]'));
+  check('specForPrompt preserves glyph + structure', out.includes('🐱') && out.includes('"points":1'));
+  check('specForPrompt does not mutate the source spec', s.hero!.img === uriMax && s.good![0].img === uriMax);
 }
 
 // ---- image.ts re-encode pipeline (real sharp) ----------------------------------
