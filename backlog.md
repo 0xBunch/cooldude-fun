@@ -119,7 +119,7 @@ Both produce the same thing: a **sprite image** embedded in the game.
   **separate `drive.file` writer SA** (arcade keeps read-only) → arcade discovers it in ≤60s.
   Single server-enforced approver chokepoint (extend `ADMIN_TOKEN`); a minimal approval queue UI.
   **This unlocks the real magic** ("I made a game and it's in the arcade").
-- **Per-kid identity** — currently shared `STUDIO_CODE` only. Add per-kid name/PIN (mirror `gate.ts`,
+- **Per-kid identity** — currently shared `STUDIO_CODE` only. Add per-kid name/PIN (mirror `gate-studio.ts`,
   bcrypt PIN, lockout in Postgres not the in-memory limiter).
 - **Iteration / "make it purple"** — re-generate a sprite/spec and re-build without starting over;
   draft versions.
