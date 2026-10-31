@@ -1,6 +1,6 @@
 /* COOL DUDEZ ARCADE — shell controller (the trusted parent).
- * Owns the nickname + device id, runs the gate, renders the gallery, hosts the
- * sandboxed game iframe, and is the ONLY thing that submits scores. */
+ * Owns the nickname + device id, renders the gallery, hosts the sandboxed game
+ * iframe, and is the ONLY thing that submits scores. */
 (function () {
   'use strict';
 
@@ -115,32 +115,10 @@
   }
 
   function showView(name) {
-    ['gate', 'home', 'play'].forEach(function (v) {
+    ['home', 'play'].forEach(function (v) {
       var el = $(v);
       if (el) el.hidden = v !== name;
     });
-  }
-
-  // ── gate ─────────────────────────────────────────────────────────────────
-  function initGate() {
-    $('gate-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      var err = $('gate-error');
-      err.hidden = true;
-      sfx.coin();
-      postJSON('/api/gate', { code: $('gate-input').value }).then(function (r) {
-        if (r.ok) { sfx.powerup(); enterArcade(); }
-        else { sfx.buzz(); err.textContent = 'That code is not right. Ask the Cool Dude!'; err.hidden = false; }
-      }).catch(function () {
-        err.textContent = 'Something went wrong. Try again.'; err.hidden = false;
-      });
-    });
-  }
-
-  function enterArcade() {
-    showView('home');
-    renderWhoami();
-    loadGames();
   }
 
   // ── nickname ─────────────────────────────────────────────────────────────
@@ -288,7 +266,6 @@
 
     postJSON('/api/scores', { slug: game.slug, nickname: state.nickname, score: n })
       .then(function (r) {
-        if (r.status === 403) { showToast('Arcade locked', 'Re-enter the code to save scores.'); showView('gate'); return null; }
         if (r.status === 429) { showToast('Whoa, slow down!', 'Try again in a moment.'); return null; }
         return r.json().then(function (data) { return { ok: r.ok, data: data }; });
       })
@@ -368,14 +345,15 @@
   function start() {
     state.deviceId = deviceId();
     initSound();
-    initGate();
     initNickname();
     initPlay();
     renderWhoami();
+    showView('home');
+    // Learn where games are framed from (the untrusted games origin in prod)
+    // BEFORE rendering tiles, so a quick tap can't frame from an empty base URL.
     getJSON('/api/session').then(function (s) {
       state.gamesBaseUrl = (s && s.gamesBaseUrl) || '';
-      if (s && s.gated) { enterArcade(); } else { showView('gate'); $('gate-input').focus(); }
-    }).catch(function () { showView('gate'); });
+    }).catch(function () {}).then(loadGames);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);

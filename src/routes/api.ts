@@ -1,8 +1,7 @@
-// Leaderboard + gate API (served on the main/public host only).
+// Leaderboard API (served on the main/public host only).
 
 import { Hono } from 'hono';
 import { config } from '../config';
-import { codeMatches, setGate, isGated } from '../gate';
 import { cleanNickname, cleanScore } from '../validate';
 import { allow } from '../ratelimit';
 import { getGames, getGame } from '../cache';
@@ -10,22 +9,12 @@ import { topScores, insertScore, deleteScore } from '../db';
 
 export const api = new Hono();
 
-// Tells the shell whether the gate is unlocked, and where games are served.
-api.get('/session', async (c) => {
-  return c.json({ gated: await isGated(c), gamesBaseUrl: config.gamesBaseUrl });
+// Tells the shell where games are served from.
+api.get('/session', (c) => {
+  return c.json({ gamesBaseUrl: config.gamesBaseUrl });
 });
 
-// Unlock the soft gate.
-api.post('/gate', async (c) => {
-  const body = await c.req.json().catch(() => ({}) as Record<string, unknown>);
-  if (!codeMatches(body?.code)) {
-    return c.json({ ok: false, error: 'wrong code' }, 401);
-  }
-  await setGate(c);
-  return c.json({ ok: true });
-});
-
-// Game list (from the 60s Drive cache). Open — browsing isn't gated.
+// Game list (from the 60s Drive cache).
 api.get('/games', async (c) => {
   const games = await getGames();
   return c.json(
@@ -44,10 +33,8 @@ api.get('/scores/:slug', async (c) => {
   return c.json(top);
 });
 
-// Submit a score. Gated + validated + rate-limited + profanity-checked.
+// Submit a score. Validated + rate-limited + profanity-checked.
 api.post('/scores', async (c) => {
-  if (!(await isGated(c))) return c.json({ ok: false, error: 'locked' }, 403);
-
   const body = await c.req.json().catch(() => ({}) as Record<string, unknown>);
 
   const game = await getGame(String(body?.slug ?? ''));

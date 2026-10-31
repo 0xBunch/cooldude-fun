@@ -1,6 +1,6 @@
 // Studio gate. A shared STUDIO_CODE unlocks the game-maker and sets a signed,
-// HttpOnly, SameSite=Strict cookie. Mirrors src/gate.ts but with its own cookie
-// name. If STUDIO_CODE is unset the Studio is disabled and nothing can unlock it.
+// HttpOnly, SameSite=Strict cookie. If STUDIO_CODE is unset the Studio is
+// disabled and nothing can unlock it.
 
 import type { Context } from 'hono';
 import { getSignedCookie, setSignedCookie } from 'hono/cookie';

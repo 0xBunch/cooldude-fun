@@ -144,14 +144,6 @@ main {
 }
 .logo-sm { font-size: clamp(22px, 7vw, 34px); }
 
-.kicker {
-  font-family: var(--font-display);
-  color: var(--yellow);
-  font-size: 13px;
-  letter-spacing: 3px;
-  margin: 0;
-}
-
 .marquee {
   color: var(--yellow);
   font-size: 12px;
@@ -174,21 +166,6 @@ main {
   color: var(--ice);
   font-size: 13px;
 }
-
-/* ── Gate ───────────────────────────────────────────────────────────────── */
-#gate {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding:
-    max(24px, env(safe-area-inset-top))
-    max(20px, env(safe-area-inset-right))
-    max(24px, env(safe-area-inset-bottom))
-    max(20px, env(safe-area-inset-left));
-}
-#gate .stack { width: min(360px, 88vw); }
-.gate-form { display: flex; flex-direction: column; gap: 12px; width: min(320px, 86vw); margin-top: 8px; }
 
 /* ── Forms / buttons ────────────────────────────────────────────────────── */
 .field {
@@ -477,7 +454,7 @@ main {
 }
 
 /* On narrow screens the centered header would run under the fixed mute button —
-   reserve top clearance. Gate/play are position:fixed, so they're unaffected. */
+   reserve top clearance. Play is position:fixed, so it's unaffected. */
 @media (max-width: 680px) {
   main { padding-top: calc(max(var(--pad), env(safe-area-inset-top)) + 46px); }
 }

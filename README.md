@@ -18,7 +18,7 @@ One small Node service does everything:
   the arcade's cookies or storage, and reports scores to the shell only via
   `postMessage`. The shell is the only thing that submits scores.
 - **Shared leaderboard.** Nicknames only (remembered on-device, no logins).
-- **Soft gate.** One shared "arcade code" unlocks score-posting.
+- **No login, no code.** Open the URL and play.
 
 ```
 cooldude.fun (shell + /api + thumbs)  ──frames──▶  games.cooldude.fun (/g/:slug, sandboxed)
@@ -37,8 +37,7 @@ With no credentials set, it falls back to:
 - **games** from the local `games-local/` folder (a sample game is included), and
 - an **in-memory** leaderboard.
 
-Default arcade code is `letmein` (override with `ARCADE_CODE`). Copy
-`.env.example` to `.env` to change anything.
+Copy `.env.example` to `.env` to change anything.
 
 ```bash
 npm run build        # type-check + compile to dist/
@@ -80,7 +79,7 @@ Optional: drop an image with the same name (`My Game.png`) for a custom tile.
   `games.cooldude.fun` (the service splits traffic by `Host`).
 - **Keep `numReplicas` at 1.** The games cache and rate limiter hold in-memory
   state and assume a single process. Scaling out would break their coherence.
-- In production the server refuses to boot if `COOKIE_SECRET`, `ARCADE_CODE`,
+- In production the server refuses to boot if `COOKIE_SECRET`,
   `PUBLIC_BASE_URL`, or `GAMES_BASE_URL` is missing (fails closed, never on the
   dev-default secret).
 
@@ -95,8 +94,7 @@ Optional: drop an image with the same name (`My Game.png`) for a custom tile.
 | `DATABASE_URL` | Auto-injected by Railway Postgres. |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | The service-account key (raw JSON or base64). |
 | `DRIVE_FOLDER_ID` | The shared games folder ID. |
-| `ARCADE_CODE` | The shared code kids type once. |
-| `COOKIE_SECRET` | Long random string (signs the gate cookie). |
+| `COOKIE_SECRET` | Long random string (signs the Studio gate cookie). |
 | `ADMIN_TOKEN` | For deleting a bad score (see below). |
 | `PUBLIC_BASE_URL` | `https://cooldude.fun` |
 | `GAMES_BASE_URL` | `https://games.cooldude.fun` |
@@ -105,8 +103,8 @@ Optional: drop an image with the same name (`My Game.png`) for a custom tile.
 ## Moderation
 
 Scores are submitted from the browser and are therefore forgeable — that's fine
-for a friends-only arcade. Guards in place: the soft gate, per-device/IP rate
-limits, score bounds, and a profanity filter on nicknames. To remove a bad row:
+for a friends-only arcade. Guards in place: per-device/IP rate limits, score
+bounds, and a profanity filter on nicknames. To remove a bad row:
 
 ```bash
 curl -X DELETE https://cooldude.fun/api/scores/<id> -H "x-admin-token: $ADMIN_TOKEN"
@@ -116,9 +114,8 @@ curl -X DELETE https://cooldude.fun/api/scores/<id> -H "x-admin-token: $ADMIN_TO
 
 | Route | |
 |---|---|
-| `GET /api/session` | `{ gated, gamesBaseUrl }` |
-| `POST /api/gate` | `{ code }` → sets gate cookie |
+| `GET /api/session` | `{ gamesBaseUrl }` |
 | `GET /api/games` | `[{ slug, title, thumbUrl }]` |
 | `GET /api/scores/:slug?limit=10` | top scores |
-| `POST /api/scores` | `{ slug, nickname, score }` (gated) |
+| `POST /api/scores` | `{ slug, nickname, score }` |
 | `DELETE /api/scores/:id` | owner-only (`x-admin-token`) |

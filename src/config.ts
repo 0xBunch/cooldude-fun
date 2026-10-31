@@ -36,8 +36,7 @@ export const config = {
   // origin) for the security boundary. In prod the hosts differ.
   sameHost: publicHost === gamesHost,
 
-  // Soft gate
-  arcadeCode: process.env.ARCADE_CODE || 'letmein',
+  // Signs the Studio gate cookie (see src/studio/gate-studio.ts).
   cookieSecret: process.env.COOKIE_SECRET || 'dev-insecure-cookie-secret-change-me',
   adminToken: process.env.ADMIN_TOKEN || '',
 
@@ -70,7 +69,6 @@ export const config = {
 if (config.isProd) {
   const required: Record<string, string | undefined> = {
     COOKIE_SECRET: process.env.COOKIE_SECRET,
-    ARCADE_CODE: process.env.ARCADE_CODE,
     PUBLIC_BASE_URL: process.env.PUBLIC_BASE_URL,
     GAMES_BASE_URL: process.env.GAMES_BASE_URL,
   };
